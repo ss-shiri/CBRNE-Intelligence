@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ingest-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - name: Ingest logic tests
+        working-directory: services/ingest
+        run: python -m pytest tests/ -q
+
+  schema-parses:
+    runs-on: ubuntu-latest
+    # Applies the DDL against a real Postgres. The parser check in CI is not
+    # enough: extensions, triggers and plpgsql bodies only fail at apply time.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cbrne
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ["5432:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d cbrne -v ON_ERROR_STOP=1 -f db/schema.sql
+      - name: Confirm tables exist
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d cbrne -c "\dt"
+          psql -h localhost -U postgres -d cbrne -tAc \
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'"

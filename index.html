@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CBRNE Intelligence Reading Room</title>
+<meta name="description" content="An intelligence collection and reading environment. Not a news site.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Monochrome. White ground, black ink, greys between. No accent colour,
+   no gradient, no shadow, no radius above 2px. Reading column fixed at
+   850px. Every rule here follows the brief rather than reinterpreting it.
+   ========================================================================== */
+:root{
+  --bg:#FFFFFF; --bg-alt:#FAFAFA;
+  --ink:#111111; --ink-2:#444444; --ink-3:#767676; --ink-4:#A3A3A3;
+  --rule:#E4E4E4; --rule-2:#F0F0F0;
+  --sel:#111111; --sel-ink:#FFFFFF;
+  --read:850px; --sidebar:236px;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --serif:"Source Serif 4",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+[data-theme="dark"]{
+  --bg:#111111; --bg-alt:#171717;
+  --ink:#EDEDED; --ink-2:#BDBDBD; --ink-3:#8A8A8A; --ink-4:#5E5E5E;
+  --rule:#2A2A2A; --rule-2:#1E1E1E;
+  --sel:#EDEDED; --sel-ink:#111111;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+::selection{background:var(--sel);color:var(--sel-ink)}
+
+/* ---------------------------------------------------------------- shell */
+.app{display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:100vh}
+
+/* ---------------------------------------------------------------- sidebar */
+.side{border-right:1px solid var(--rule);padding:22px 0 60px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:0 20px 22px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);line-height:1.7}
+.brand b{display:block;font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.navgrp{margin-bottom:20px}
+.navlab{padding:0 20px 6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.nav{display:block;width:100%;text-align:left;padding:5px 20px;font-size:13.5px;color:var(--ink-2);border-left:2px solid transparent}
+.nav:hover{color:var(--ink);background:var(--bg-alt)}
+.nav[aria-current="true"]{color:var(--ink);border-left-color:var(--ink);font-weight:500}
+.nav .n{float:right;font-family:var(--mono);font-size:10.5px;color:var(--ink-4)}
+.nav.sub{padding-left:32px;font-size:13px}
+
+/* ---------------------------------------------------------------- main */
+.main{min-width:0;display:flex;flex-direction:column}
+.top{border-bottom:1px solid var(--rule);padding:20px 32px 0;position:sticky;top:0;background:var(--bg);z-index:20}
+.topin{max-width:var(--read);margin:0 auto}
+.h1{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em;margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.h1 .st{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);font-weight:400;white-space:nowrap}
+.srch{position:relative;margin-bottom:12px}
+.srch input{width:100%;background:var(--bg);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:9px 12px 9px 32px;border-radius:2px}
+.srch input:focus{border-color:var(--ink-3);outline:none}
+.srch input::placeholder{color:var(--ink-4)}
+.srch .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:var(--ink-4);pointer-events:none}
+.filters{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:12px}
+.fbtn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--rule);padding:4px 8px;border-radius:2px}
+.fbtn:hover{color:var(--ink);border-color:var(--ink-3)}
+.fbtn[aria-pressed="true"]{background:var(--sel);color:var(--sel-ink);border-color:var(--sel)}
+.qhint{font-family:var(--mono);font-size:10px;color:var(--ink-4);padding-bottom:12px;letter-spacing:.03em}
+
+/* ---------------------------------------------------------------- stream */
+.body{flex:1;padding:0 32px 90px}
+.col{max-width:var(--read);margin:0 auto}
+.row{display:block;width:100%;text-align:left;padding:16px 0;border-bottom:1px solid var(--rule-2)}
+.row:hover .rt{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.row[data-cursor="1"]{background:var(--bg-alt);box-shadow:-14px 0 0 var(--bg-alt),14px 0 0 var(--bg-alt)}
+.meta{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.meta .d{opacity:.4}
+.dom{border:1px solid currentColor;padding:0 4px;border-radius:2px;font-size:8.5px;letter-spacing:.1em;color:var(--ink-3)}
+.rt{font-family:var(--serif);font-size:18px;line-height:1.35;font-weight:400;color:var(--ink);display:block}
+.rsum{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{font-family:var(--mono);font-size:12px;color:var(--ink-4);padding:60px 0;text-align:center;line-height:2}
+
+/* ---------------------------------------------------------------- reader */
+.rd{max-width:var(--read);margin:0 auto;padding-top:8px}
+.back{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding:14px 0 22px;display:inline-block}
+.back:hover{color:var(--ink)}
+.rdgrid{display:grid;grid-template-columns:1fr 232px;gap:44px;align-items:start}
+[data-focus="1"] .rdgrid{grid-template-columns:1fr}
+[data-focus="1"] .rail{display:none}
+[data-focus="1"] .side{display:none}
+[data-focus="1"] .app{grid-template-columns:1fr}
+.rdmeta{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4);margin-bottom:14px;line-height:2}
+.rdtitle{font-family:var(--serif);font-size:31px;line-height:1.22;font-weight:600;letter-spacing:-.015em;margin-bottom:22px}
+.rdbody{font-family:var(--serif);font-size:18px;line-height:1.72;color:var(--ink-2);max-width:68ch}
+.rdbody p{margin-bottom:1.1em}
+.orig{display:inline-block;margin-top:26px;padding:9px 14px;border:1px solid var(--rule);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-radius:2px}
+.orig:hover{border-color:var(--ink);}
+.rail{position:sticky;top:150px;font-size:13px}
+.railgrp{margin-bottom:22px}
+.raillab{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4);padding-bottom:7px;border-bottom:1px solid var(--rule-2);margin-bottom:8px}
+.ent{display:block;padding:3px 0;color:var(--ink-2);font-size:12.5px}
+.ent .k{font-family:var(--mono);font-size:9.5px;color:var(--ink-4);display:block}
+.ent:hover{color:var(--ink)}
+.note{font-size:11.5px;color:var(--ink-4);line-height:1.55;border-top:1px solid var(--rule-2);padding-top:10px;margin-top:18px}
+
+/* ---------------------------------------------------------------- misc */
+.foot{max-width:var(--read);margin:0 auto;padding:26px 0 0;border-top:1px solid var(--rule);font-family:var(--mono);font-size:10px;letter-spacing:.07em;color:var(--ink-4);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.foot a:hover{color:var(--ink)}
+.kbd{font-family:var(--mono);font-size:9.5px;border:1px solid var(--rule);padding:1px 4px;border-radius:2px;color:var(--ink-3)}
+
+@media (max-width:1080px){ .rdgrid{grid-template-columns:1fr} .rail{position:static} }
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule);padding-bottom:16px}
+  .top,.body{padding-left:20px;padding-right:20px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{ .side,.top,.rail,.foot,.back{display:none} .rdbody{font-size:11pt} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><b>CBRNE Intelligence</b>Reading Room</div>
+
+    <div class="navgrp">
+      <button class="nav" data-view="all" aria-current="true">World <span class="n" id="n-all"></span></button>
+      <button class="nav" data-view="countries">Countries <span class="n" id="n-cty"></span></button>
+      <button class="nav" data-view="orgs">Organizations <span class="n" id="n-org"></span></button>
+    </div>
+
+    <div class="navgrp">
+      <div class="navlab">Threat categories</div>
+      <button class="nav sub" data-domain="chemical">Chemical <span class="n" id="n-chemical"></span></button>
+      <button class="nav sub" data-domain="biological">Biological <span class="n" id="n-biological"></span></button>
+      <button class="nav sub" data-domain="radiological">Radiological <span class="n" id="n-radiological"></span></button>
+      <button class="nav sub" data-domain="nuclear">Nuclear <span class="n" id="n-nuclear"></span></button>
+      <button class="nav sub" data-domain="explosive">Explosive <span class="n" id="n-explosive"></span></button>
+      <button class="nav sub" data-domain="cyber">Cyber <span class="n" id="n-cyber"></span></button>
+      <button class="nav sub" data-domain="health">Health <span class="n" id="n-health"></span></button>
+      <button class="nav sub" data-domain="industry">Industry <span class="n" id="n-industry"></span></button>
+    </div>
+
+    <div class="navgrp">
+      <div class="navlab">Workspace</div>
+      <button class="nav" data-view="sources">Sources <span class="n" id="n-src"></span></button>
+      <button class="nav" data-view="bookmarks">Bookmarks <span class="n" id="n-bm"></span></button>
+      <button class="nav" data-view="gaps">Collection gaps</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="topin">
+        <h1 class="h1">
+          <span id="title">World</span>
+          <span class="st" id="status">Loading</span>
+        </h1>
+        <div class="srch">
+          <span class="ic">/</span>
+          <input id="q" type="search" spellcheck="false"
+                 placeholder='search: sarin AND NOT exercise, "dirty bomb", /cs-\d+/'
+                 aria-label="Search. Supports AND, OR, NOT, quoted phrases and /regex/">
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="qhint" id="qhint"></div>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="col" id="view"></div>
+      <div class="foot">
+        <span>
+          <a href="https://ss-shiri.github.io/kaf-cbrne/" target="_blank" rel="noopener">Reading Room</a> ·
+          <a href="https://ss-shiri.github.io/ALEF-OSINT/" target="_blank" rel="noopener">ALEF OSINT</a> ·
+          <a href="https://www.linkedin.com/in/sajad-shiri/" target="_blank" rel="noopener">LinkedIn</a>
+        </span>
+        <span>
+          <span class="kbd">/</span> search
+          <span class="kbd">j</span><span class="kbd">k</span> move
+          <span class="kbd">enter</span> open
+          <span class="kbd">b</span> bookmark
+          <span class="kbd">f</span> focus
+          <span class="kbd">d</span> dark
+        </span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===========================================================================
+   Deterministic extraction, ported from services/ingest/app/enrich/.
+   Same rules, same checksums, no model calls. The reader shows exactly what
+   the Python pipeline would store, so the UI cannot drift from the backend.
+   =========================================================================== */
+
+var DOMAIN_RULES={
+ chemical:["chemical weapon","nerve agent","sarin","soman","tabun","novichok","sulfur mustard","mustard agent","chlorine gas","phosgene","opcw","chemical weapons convention","toxic industrial chemical","precursor chemical"],
+ biological:["biological weapon","bioweapon","anthrax","bacillus anthracis","ricin","botulinum","smallpox","variola","select agent","biosafety level","bsl-3","bsl-4","biosecurity","biosurveillance","gain of function","dual use research","pathogen","outbreak","zoonotic","antimicrobial resistance"],
+ radiological:["radiological dispersal","dirty bomb","radioactive source","sealed source","orphan source","gamma irradiator","radiation dose","radiological emergency","becquerel","sievert","caesium-137","cobalt-60"],
+ nuclear:["nuclear weapon","enriched uranium","plutonium","iaea safeguards","non-proliferation","fissile material","nuclear reactor","centrifuge","enrichment facility","reprocessing","warhead","nuclear test"],
+ explosive:["improvised explosive","ied","explosive device","detonator","tatp","rdx","petn","hmx","ammonium nitrate","explosive ordnance","unexploded ordnance","demining","car bomb"],
+ cyber:["ransomware","malware","threat actor","vulnerability","cve-","phishing","data breach","industrial control system","scada","mitre att&ck"],
+ health:["public health emergency","epidemic","pandemic","vaccination","disease outbreak","who emergency","quarantine","case fatality","notifiable disease"],
+ industry:["chemical plant","refinery","industrial accident","seveso","hazmat","toxic release","process safety","plant explosion"]
+};
+var DOMAIN_RX={};
+Object.keys(DOMAIN_RULES).forEach(function(d){
+  DOMAIN_RX[d]=DOMAIN_RULES[d].map(function(t){
+    return new RegExp("(?:^|[^\\w])"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![\\w])","i");
+  });
+});
+function classify(title,body){
+  var out=[],t=title||"",b=body||"";
+  Object.keys(DOMAIN_RX).forEach(function(d){
+    for(var i=0;i<DOMAIN_RX[d].length;i++){
+      if(DOMAIN_RX[d][i].test(t)||DOMAIN_RX[d][i].test(b)){out.push(d);return;}
+    }
+  });
+  return out;
+}
+
+/* CAS registry numbers carry a check digit. Without validating it, the naive
+   pattern swallows dates and phone numbers. 7647-01-0 -> 764701 reversed ->
+   1*1+0*2+7*3+4*4+6*5+7*6 = 110 -> 110 % 10 = 0 -> valid. */
+function casValid(s){
+  var m=/^(\d{2,7})-(\d{2})-(\d)$/.exec(s); if(!m) return false;
+  var body=m[1]+m[2], check=+m[3], sum=0;
+  for(var i=0;i<body.length;i++) sum+=(i+1)*(+body[body.length-1-i]);
+  return sum%10===check;
+}
+var ELEMENTS={h:"hydrogen",c:"carbon",n:"nitrogen",o:"oxygen",p:"phosphorus",s:"sulfur",k:"potassium",co:"cobalt",sr:"strontium",tc:"technetium",i:"iodine",cs:"caesium",ba:"barium",ir:"iridium",ra:"radium",th:"thorium",u:"uranium",np:"neptunium",pu:"plutonium",am:"americium",cm:"curium",cf:"californium",po:"polonium",ru:"ruthenium",kr:"krypton",xe:"xenon",mo:"molybdenum",se:"selenium"};
+var NAME2SYM={}; Object.keys(ELEMENTS).forEach(function(k){NAME2SYM[ELEMENTS[k]]=k;});
+
+function extract(text){
+  text=text||""; var out=[],m,rx;
+  rx=/\b(\d{2,7}-\d{2}-\d)\b/g;
+  while((m=rx.exec(text))) if(casValid(m[1])) out.push({kind:"CAS number",v:m[1],s:m.index,e:m.index+m[0].length});
+  rx=/\bUN[\s\-]?(\d{4})\b/gi;
+  while((m=rx.exec(text))){var n=+m[1]; if(n>=1&&n<=3999) out.push({kind:"UN number",v:"UN"+("000"+n).slice(-4),s:m.index,e:m.index+m[0].length});}
+  var syms=Object.keys(ELEMENTS).map(function(e){return e.charAt(0).toUpperCase()+e.slice(1);}).sort(function(a,b){return b.length-a.length;});
+  rx=new RegExp("\\b("+syms.join("|")+")-(\\d{1,3})\\b","g");
+  while((m=rx.exec(text))) out.push({kind:"Isotope",v:m[1]+"-"+(+m[2]),s:m.index,e:m.index+m[0].length});
+  var names=Object.keys(NAME2SYM).sort(function(a,b){return b.length-a.length;});
+  rx=new RegExp("\\b("+names.join("|")+")[\\s\\-](\\d{1,3})\\b","gi");
+  while((m=rx.exec(text))){
+    var sym=NAME2SYM[m[1].toLowerCase()]; if(!sym) continue;
+    var can=sym.charAt(0).toUpperCase()+sym.slice(1)+"-"+(+m[2]);
+    if(!out.some(function(o){return o.v===can;})) out.push({kind:"Isotope",v:can,s:m.index,e:m.index+m[0].length});
+  }
+  rx=/\bHS[\s\-]?code[\s:]*(\d{4}(?:\.?\d{2}){0,2})\b/gi;
+  while((m=rx.exec(text))){var d=m[1].replace(/\./g,""); if([4,6,8].indexOf(d.length)>-1) out.push({kind:"HS code",v:d,s:m.index,e:m.index+m[0].length});}
+  var seen={},uniq=[];
+  out.sort(function(a,b){return a.s-b.s;}).forEach(function(o){var k=o.kind+"|"+o.v; if(!seen[k]){seen[k]=1;uniq.push(o);}});
+  return uniq;
+}
+
+/* ---------------------------------------------------------------- search
+   Boolean parser: AND OR NOT, parentheses, "quoted phrases", /regex/.
+   Bare adjacent terms are ANDed. Compiled to a predicate, never to a string. */
+function tokenize(q){
+  var out=[],rx=/\s*(\(|\)|"[^"]*"|\/(?:\\.|[^\/])+\/[a-z]*|[^\s()]+)/g,m;
+  while((m=rx.exec(q))) out.push(m[1]);
+  return out;
+}
+function parseQuery(q){
+  var toks=tokenize(q||""),pos=0;
+  function peek(){return toks[pos];}
+  function eat(){return toks[pos++];}
+  function isOp(t){return t&&/^(AND|OR|NOT)$/i.test(t);}
+  function primary(){
+    var t=peek();
+    if(!t) return null;
+    if(/^NOT$/i.test(t)){eat();var i=primary();return i?function(s){return !i(s);}:null;}
+    if(t==="("){eat();var e=expr();if(peek()===")")eat();return e;}
+    eat();
+    if(t===")")return null;
+    if(t.charAt(0)==='"'){var p=t.slice(1,-1).toLowerCase();return function(s){return s.indexOf(p)>-1;};}
+    if(t.charAt(0)==="/"){
+      var mm=/^\/((?:\\.|[^\/])+)\/([a-z]*)$/.exec(t);
+      if(mm){try{var re=new RegExp(mm[1],mm[2].indexOf("i")>-1?"i":"i");return function(s){return re.test(s);};}catch(e){return function(){return false;};}}
+    }
+    var w=t.toLowerCase();return function(s){return s.indexOf(w)>-1;};
+  }
+  function andExpr(){
+    var left=primary();
+    while(peek()&&peek()!==")"){
+      if(/^OR$/i.test(peek()))break;
+      if(/^AND$/i.test(peek()))eat();
+      var right=primary(); if(!right)break;
+      (function(l,r){left=function(s){return l(s)&&r(s);};})(left,right);
+    }
+    return left;
+  }
+  function expr(){
+    var left=andExpr();
+    while(peek()&&/^OR$/i.test(peek())){
+      eat(); var right=andExpr(); if(!right)break;
+      (function(l,r){left=function(s){return l(s)||r(s);};})(left,right);
+    }
+    return left;
+  }
+  var fn=expr();
+  return fn||function(){return true;};
+}
+
+/* ---------------------------------------------------------------- state */
+var S={items:[],view:"all",domain:null,q:"",pred:null,cursor:-1,
+        open:null,focus:false,
+        /* Session only. To persist across reloads on your own deployment,
+           swap these two lines for localStorage getItem/setItem. */
+        bookmarks:{}};
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function stamp(iso){var d=new Date(iso);if(isNaN(d))return "";var p=function(n){return n<10?"0"+n:""+n;};
+  return p(d.getUTCDate())+" "+["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getUTCMonth()]+" "+p(d.getUTCHours())+":"+p(d.getUTCMinutes())+"Z";}
+function host(u){try{return new URL(u).hostname.replace(/^www\./,"");}catch(e){return "";}}
+function readMin(t){var w=(t||"").split(/\s+/).filter(Boolean).length;return w?Math.max(1,Math.round(w/230)):0;}
+
+function filtered(){
+  return S.items.filter(function(a){
+    if(S.view==="bookmarks"&&!S.bookmarks[a.id])return false;
+    if(S.domain&&(a.domains||[]).indexOf(S.domain)<0)return false;
+    if(S.pred&&!S.pred(((a.title||"")+" "+(a.body||"")+" "+(a.source||"")).toLowerCase()))return false;
+    return true;
+  });
+}
+
+/* ---------------------------------------------------------------- render */
+function renderStream(){
+  var rows=filtered(),el=document.getElementById("view");
+  document.getElementById("title").textContent =
+    S.view==="bookmarks"?"Bookmarks":(S.domain?S.domain.charAt(0).toUpperCase()+S.domain.slice(1):"World");
+  if(!rows.length){
+    el.innerHTML='<p class="empty">No entries match.<br><span style="color:var(--ink-4)">Absence here is a filter result, not a statement about the world.</span></p>';
+    return;
+  }
+  el.innerHTML=rows.map(function(a,i){
+    return '<button class="row" data-i="'+i+'"'+(i===S.cursor?' data-cursor="1"':'')+'>'
+      +'<div class="meta"><span>'+esc(stamp(a.first_seen_utc))+'</span>'
+      +'<span class="d">/</span><span>'+esc(a.source||host(a.url))+'</span>'
+      +(S.bookmarks[a.id]?'<span class="d">/</span><span>saved</span>':'')
+      +(a.domains||[]).map(function(d){return '<span class="dom">'+esc(d.slice(0,4).toUpperCase())+'</span>';}).join("")
+      +'</div><span class="rt">'+esc(a.title)+'</span>'
+      +(a.body?'<div class="rsum">'+esc(a.body.slice(0,220))+'</div>':'')
+      +'</button>';
+  }).join("");
+}
+
+function renderReader(a){
+  var text=(a.title||"")+"\n"+(a.body||""),ents=extract(text),groups={};
+  ents.forEach(function(e){(groups[e.kind]=groups[e.kind]||[]).push(e);});
+  var rail="";
+  if((a.domains||[]).length) groups["Domain"]=(a.domains).map(function(d){return {v:d};});
+  Object.keys(groups).forEach(function(k){
+    rail+='<div class="railgrp"><div class="raillab">'+esc(k)+'</div>'
+      +groups[k].map(function(e){return '<span class="ent">'+esc(e.v)+'</span>';}).join("")+'</div>';
+  });
+  if(!rail) rail='<div class="railgrp"><div class="raillab">Entities</div>'
+    +'<span class="ent" style="color:var(--ink-4)">None detected</span></div>';
+  rail+='<p class="note">Entities are extracted by regex and checksum only. '
+     +'No model produced anything on this page. Nothing here is verified.</p>';
+
+  document.getElementById("title").textContent="Article";
+  document.getElementById("view").innerHTML=
+     '<button class="back" id="back">&larr; back</button>'
+    +'<div class="rdgrid"><article class="rd">'
+    +'<div class="rdmeta">'
+    +  esc(a.source||host(a.url))+' &nbsp;/&nbsp; '+esc(stamp(a.first_seen_utc))
+    +  (a.lang?' &nbsp;/&nbsp; '+esc(a.lang):'')
+    +  (readMin(a.body)?' &nbsp;/&nbsp; '+readMin(a.body)+' min read':'')
+    +  '<br>unverified signal'
+    +'</div>'
+    +'<h2 class="rdtitle">'+esc(a.title)+'</h2>'
+    +'<div class="rdbody">'+(a.body?'<p>'+esc(a.body).replace(/\n+/g,'</p><p>')+'</p>'
+        :'<p style="color:var(--ink-4)">No body text was captured for this item. Open the original.</p>')+'</div>'
+    +(a.url&&a.url!=="#"?'<a class="orig" href="'+esc(a.url)+'" target="_blank" rel="noopener">Original source &nearr;</a>':'')
+    +'</article><aside class="rail">'+rail+'</aside></div>';
+  document.getElementById("back").onclick=function(){S.open=null;renderStream();};
+  window.scrollTo(0,0);
+}
+
+function render(){ if(S.open) renderReader(S.open); else renderStream(); paintNav(); }
+
+function paintNav(){
+  document.querySelectorAll(".nav").forEach(function(b){
+    var on = b.dataset.domain ? (S.domain===b.dataset.domain)
+           : (b.dataset.view==="all" ? (!S.domain&&S.view==="all") : S.view===b.dataset.view);
+    b.setAttribute("aria-current", on?"true":"false");
+  });
+  var counts={};
+  S.items.forEach(function(a){(a.domains||[]).forEach(function(d){counts[d]=(counts[d]||0)+1;});});
+  Object.keys(DOMAIN_RULES).forEach(function(d){
+    var el=document.getElementById("n-"+d); if(el) el.textContent=counts[d]||"";
+  });
+  var e;
+  if((e=document.getElementById("n-all"))) e.textContent=S.items.length||"";
+  if((e=document.getElementById("n-bm"))) e.textContent=Object.keys(S.bookmarks).length||"";
+  if((e=document.getElementById("n-src"))) e.textContent=
+    Object.keys(S.items.reduce(function(m,a){m[a.source||host(a.url)]=1;return m;},{})).length||"";
+}
+
+/* ---------------------------------------------------------------- events */
+document.querySelectorAll(".nav").forEach(function(b){
+  b.onclick=function(){
+    S.open=null;S.cursor=-1;
+    if(b.dataset.domain){S.domain=(S.domain===b.dataset.domain)?null:b.dataset.domain;S.view="all";}
+    else{S.view=b.dataset.view;S.domain=null;}
+    render();
+  };
+});
+document.getElementById("view").addEventListener("click",function(ev){
+  var r=ev.target.closest(".row"); if(!r) return;
+  S.open=filtered()[+r.dataset.i]; render();
+});
+var qEl=document.getElementById("q");
+qEl.addEventListener("input",function(e){
+  S.q=e.target.value.trim();
+  S.pred=S.q?parseQuery(S.q):null;
+  S.cursor=-1;S.open=null;
+  var n=filtered().length;
+  document.getElementById("qhint").textContent=S.q?(n+" of "+S.items.length+" match"):"";
+  render();
+});
+document.addEventListener("keydown",function(e){
+  if(e.target.tagName==="INPUT"){ if(e.key==="Escape"){e.target.blur();} return; }
+  var rows;
+  if(e.key==="/"){e.preventDefault();qEl.focus();return;}
+  if(e.key==="d"){document.documentElement.setAttribute("data-theme",
+      document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");return;}
+  if(e.key==="f"&&S.open){S.focus=!S.focus;document.documentElement.setAttribute("data-focus",S.focus?"1":"0");return;}
+  if(e.key==="Escape"&&S.open){S.open=null;S.focus=false;document.documentElement.setAttribute("data-focus","0");render();return;}
+  if(S.open){
+    if(e.key==="b"){S.bookmarks[S.open.id]=!S.bookmarks[S.open.id]||undefined;
+      if(!S.bookmarks[S.open.id])delete S.bookmarks[S.open.id];paintNav();}
+    return;
+  }
+  rows=filtered();
+  if(e.key==="j"){S.cursor=Math.min(S.cursor+1,rows.length-1);render();
+    var el=document.querySelector('[data-cursor="1"]'); if(el)el.scrollIntoView({block:"nearest"});}
+  if(e.key==="k"){S.cursor=Math.max(S.cursor-1,0);render();
+    var el2=document.querySelector('[data-cursor="1"]'); if(el2)el2.scrollIntoView({block:"nearest"});}
+  if(e.key==="Enter"&&rows[S.cursor]){S.open=rows[S.cursor];render();}
+  if(e.key==="b"&&rows[S.cursor]){var id=rows[S.cursor].id;
+    if(S.bookmarks[id])delete S.bookmarks[id];else S.bookmarks[id]=1;render();}
+});
+
+/* ---------------------------------------------------------------- filters */
+(function(){
+  var box=document.getElementById("filters");
+  box.innerHTML=Object.keys(DOMAIN_RULES).map(function(d){
+    return '<button class="fbtn" data-d="'+d+'" aria-pressed="false">'+d+'</button>';
+  }).join("");
+  box.onclick=function(ev){
+    var b=ev.target.closest(".fbtn"); if(!b) return;
+    S.domain=(S.domain===b.dataset.d)?null:b.dataset.d; S.open=null; S.cursor=-1;
+    box.querySelectorAll(".fbtn").forEach(function(x){
+      x.setAttribute("aria-pressed",String(x.dataset.d===S.domain));});
+    render();
+  };
+})();
+
+/* ---------------------------------------------------------------- load
+   Archive first. Falls back to a direct sweep so the page is never blank
+   before the ingest workflow has run for the first time. */
+function normalise(a,src){
+  var title=a.title||"(untitled)";
+  var body=a.body||a.summary||"";
+  return {id:a.id||a.url||title,title:title,body:body,url:a.url||"#",
+          source:a.source_name||a.source||src||host(a.url),
+          lang:a.lang||"",first_seen_utc:a.first_seen_utc||a.published_utc||new Date().toISOString(),
+          domains:(a.domains&&a.domains.length)?a.domains:classify(title,body)};
+}
+function setStatus(t){document.getElementById("status").textContent=t;}
+
+function fromArchive(){
+  return fetch("data/latest.json",{cache:"no-store"}).then(function(r){
+    if(!r.ok) throw 0; return r.json();
+  }).then(function(d){
+    var rows=[].concat(d.news||[],d.papers||[],d.articles||[]);
+    if(!rows.length) throw 0;
+    S.items=rows.map(function(a){return normalise(a);});
+    setStatus("Archive / "+stamp(d.generated_utc||new Date().toISOString()));
+  });
+}
+function liveSweep(){
+  var q='(biosecurity OR "chemical weapon" OR "nerve agent" OR "dirty bomb" OR '
+       +'"radioactive source" OR "improvised explosive" OR OPCW OR "IAEA safeguards")';
+  var url="https://api.gdeltproject.org/api/v2/doc/doc?query="+encodeURIComponent(q)
+        +"&mode=artlist&maxrecords=60&format=json&sort=datedesc&timespan=7d";
+  return fetch(url).then(function(r){return r.json();}).then(function(d){
+    var arts=(d&&d.articles)||[]; if(!arts.length) throw 0;
+    S.items=arts.map(function(a){
+      var s=String(a.seendate||"");
+      var iso=s.length>=15?s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8)+"T"+s.slice(9,11)+":"+s.slice(11,13)+":00Z":new Date().toISOString();
+      return normalise({id:a.url,title:a.title,url:a.url,source_name:a.domain,
+                        lang:a.language,first_seen_utc:iso});
+    });
+    setStatus("Direct / GDELT");
+  });
+}
+fromArchive()
+  .catch(liveSweep)
+  .catch(function(){ S.items=[]; setStatus("No data"); })
+  .then(render);
+
+})();
+</script>
+</body>
+</html>
