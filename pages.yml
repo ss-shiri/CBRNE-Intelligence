@@ -1,12 +1,13 @@
 name: pages
 
-# Publishes web/ to GitHub Pages. This is the zero-infrastructure track:
-# the reader works from a static host with no Postgres and no Docker.
+# Publishes web/ to GitHub Pages. Zero‑infrastructure: static hosting only.
 
 on:
   push:
     branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,12 +24,17 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
       - uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
+
       - id: deployment
         uses: actions/deploy-pages@v4
